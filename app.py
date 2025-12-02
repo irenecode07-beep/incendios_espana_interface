@@ -1,10 +1,16 @@
-# 1. Configuración de la página (Debe ser lo primero)
+# 1. importar librerias 
+import streamlit as st
+import pandas as pd
+import folium
+from streamlit_folium import st_folium
+import zipfile
+# 2. Configuración de la página
 st.set_page_config(
     page_title="Monitor de Incendios Forestales España",
     page_icon="🔥",
     layout="wide"
 )
-# 2. Carga de datos optimizada (memoria y cache)
+# 3. Carga de datos optimizada
 @st.cache_data
 def cargar_datos():
     archivo_zip = 'fires-all.csv.zip'
@@ -28,7 +34,7 @@ df = cargar_datos()
 if df.empty:
     st.stop()
 
-# 3. Barra lateral filtros 
+# 4. Barra lateral filtros 
 st.sidebar.header("Filtros de Búsqueda")
 
 # A. Filtro por Años
