@@ -1,3 +1,6 @@
+# ------------------------------------------------------
+# 0. IMPORTAR LIBRERIAS (tienen que estar en requirements.txt
+# ------------------------------------------------------
 import streamlit as st
 import pandas as pd
 import folium
