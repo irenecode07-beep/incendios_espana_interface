@@ -38,7 +38,7 @@ def cargar_maestros():
         # 3. Causas
         # Nota: Asumo que en el Excel las columnas se llaman 'idcausa' y 'causa_desc'
         # Ajusta esto si tus cabeceras son diferentes
-        df_causa = df_meta[['idcausa', 'causa_desc']].dropna() 
+        df_causa = df_meta[['causa', 'causa_label']].dropna() 
         maestros['causas'] = dict(zip(df_causa['idcausa'], df_causa['causa_desc']))
 
     except FileNotFoundError:
