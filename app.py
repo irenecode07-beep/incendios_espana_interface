@@ -18,35 +18,36 @@ st.set_page_config(
 # 2. CARGA DE DATOS Y MAESTROS
 # ------------------------------------------------------
 
-# Función auxiliar para cargar el Excel de metadatos
 def cargar_maestros():
-    archivo_meta = 'master_data.xlsx' # ¡Ojo con las comillas!
+    """Carga los metadatos y devuelve diccionarios para traducir IDs a Texto."""
+    archivo_meta = 'master_data.xlsx'
     maestros = {}
 
     try:
-        # Cargamos el excel (asegúrate que las cabeceras del Excel coincidan con estos nombres)
         df_meta = pd.read_excel(archivo_meta)
 
         # 1. Comunidades
-        df_com = df_meta[['idcomunidad', 'comunidad']].dropna()
-        maestros['comunidades'] = dict(zip(df_com['idcomunidad'], df_com['comunidad']))
+        if 'idcomunidad' in df_meta.columns and 'comunidad' in df_meta.columns:
+            df_com = df_meta[['idcomunidad', 'comunidad']].dropna()
+            maestros['comunidades'] = dict(zip(df_com['idcomunidad'], df_com['comunidad']))
 
         # 2. Provincias
-        df_prov = df_meta[['idprovincia', 'provincia']].dropna()
-        maestros['provincias'] = dict(zip(df_prov['idprovincia'], df_prov['provincia']))
+        if 'idprovincia' in df_meta.columns and 'provincia' in df_meta.columns:
+            df_prov = df_meta[['idprovincia', 'provincia']].dropna()
+            maestros['provincias'] = dict(zip(df_prov['idprovincia'], df_prov['provincia']))
 
-        # 3. Causas
-        # Nota: Asumo que en el Excel las columnas se llaman 'idcausa' y 'causa_desc'
-        # Ajusta esto si tus cabeceras son diferentes
-        df_causa = df_meta[['causa', 'causa_label']].dropna() 
-        maestros['causas'] = dict(zip(df_causa['idcausa'], df_causa['causa_desc']))
+        # 3. Causas (CORREGIDO)
+        # Usamos 'causa' y 'causa_label' porque así se llaman en tu Excel master_data
+        if 'causa' in df_meta.columns and 'causa_label' in df_meta.columns:
+            df_causa = df_meta[['causa', 'causa_label']].dropna()
+            # ¡Aquí estaba el error! Usamos las mismas columnas que acabamos de leer
+            maestros['causas'] = dict(zip(df_causa['causa'], df_causa['causa_label']))
 
     except FileNotFoundError:
-        st.error(f"⚠️ No encuentro el archivo '{archivo_meta}'")
+        st.warning(f"⚠️ No se encuentra '{archivo_meta}'. Se verán solo códigos numéricos.")
         return {}
     except Exception as e:
-        # Si falla, no rompemos la app, solo devolvemos diccionarios vacíos
-        st.warning(f"⚠️ No se pudieron cargar las etiquetas: {e}")
+        st.warning(f"⚠️ Error leyendo metadatos: {e}")
         return {}
     
     return maestros
@@ -56,7 +57,7 @@ def cargar_datos():
     archivo_zip = 'fires-all.csv.zip' 
     
     try:
-        # 1. Primero cargamos los diccionarios de traducción
+        # 1. Cargamos diccionarios
         diccionarios = cargar_maestros()
         
         with zipfile.ZipFile(archivo_zip) as z:
@@ -68,30 +69,51 @@ def cargar_datos():
             with z.open(archivos_csv[0]) as f:
                 df = pd.read_csv(f, parse_dates=['fecha'], index_col='fecha')
                 
-                # --- APLICAMOS LA TRADUCCIÓN (CRUCE DE DATOS) ---
+                # --- TRADUCCIÓN ROBUSTA (Conversion de Tipos) ---
+                # Convertimos a numérico antes de mapear para evitar errores de tipo (texto vs numero)
                 
-                # Traducir Comunidades
-                if 'idcomunidad' in df.columns and 'comunidades' in diccionarios:
-                    df['nombre_comunidad'] = df['idcomunidad'].map(diccionarios['comunidades']).fillna("Desconocido")
+                # 1. COMUNIDADES
+                if 'idcomunidad' in df.columns:
+                    # Forzamos a numero, los errores se vuelven NaN
+                    df['idcomunidad'] = pd.to_numeric(df['idcomunidad'], errors='coerce')
+                    if 'comunidades' in diccionarios:
+                        df['nombre_comunidad'] = df['idcomunidad'].map(diccionarios['comunidades'])
+                        # Rellenamos los que no crucen con el ID original
+                        df['nombre_comunidad'] = df['nombre_comunidad'].fillna(df['idcomunidad'].astype(str))
                 else:
-                    df['nombre_comunidad'] = df['idcomunidad'] # Si falla, dejamos el ID
+                    df['nombre_comunidad'] = "Desconocido"
 
-                # Traducir Provincias
-                if 'idprovincia' in df.columns and 'provincias' in diccionarios:
-                    df['nombre_provincia'] = df['idprovincia'].map(diccionarios['provincias']).fillna("Desconocido")
+                # 2. PROVINCIAS
+                if 'idprovincia' in df.columns:
+                    df['idprovincia'] = pd.to_numeric(df['idprovincia'], errors='coerce')
+                    if 'provincias' in diccionarios:
+                        df['nombre_provincia'] = df['idprovincia'].map(diccionarios['provincias'])
+                        df['nombre_provincia'] = df['nombre_provincia'].fillna(df['idprovincia'].astype(str))
                 else:
-                    df['nombre_provincia'] = df['idprovincia']
+                    df['nombre_provincia'] = "Desconocido"
 
-                # Traducir Causas (Asumiendo que la columna de IDs en el CSV es 'causa_desc' o similar)
-                # Revisa cual es la columna numérica de causas en tu CSV de incendios
-                col_causa_id = 'causa_desc' # <--- CAMBIA ESTO si tu columna de ID de causa tiene otro nombre
+                # 3. CAUSAS
+                # IMPORTANTE: Revisa si tu columna en el CSV de incendios es 'causa' (general 1-6)
+                # o 'causa_desc' (detallada 200-400).
+                # Aquí intentamos usar 'causa' (general) primero porque coincide con tu master_data
+                col_causa_id = 'causa' 
                 
-                if col_causa_id in df.columns and 'causas' in diccionarios:
-                    # Nos aseguramos que sea numérico para que coincida con el diccionario
+                # Si no existe 'causa', probamos 'idcausa' o 'causa_desc'
+                if col_causa_id not in df.columns:
+                     if 'idcausa' in df.columns: col_causa_id = 'idcausa'
+                     elif 'causa_desc' in df.columns: col_causa_id = 'causa_desc'
+
+                if col_causa_id in df.columns:
                     df[col_causa_id] = pd.to_numeric(df[col_causa_id], errors='coerce')
-                    df['causa_texto'] = df[col_causa_id].map(diccionarios['causas']).fillna("No especificado")
-                
-                # Conversión de numéricos
+                    if 'causas' in diccionarios:
+                        df['causa_texto'] = df[col_causa_id].map(diccionarios['causas'])
+                        df['causa_texto'] = df['causa_texto'].fillna("Causa " + df[col_causa_id].astype(str))
+                    else:
+                         df['causa_texto'] = df[col_causa_id]
+                else:
+                    df['causa_texto'] = "No especificado"
+
+                # Conversión de numéricos para cálculos
                 cols_num = ['superficie', 'gastos', 'perdidas', 'lat', 'lng']
                 for col in cols_num:
                     if col in df.columns:
@@ -106,10 +128,11 @@ def cargar_datos():
 df = cargar_datos()
 
 if df.empty:
+    st.info("Esperando datos. Asegúrate de tener 'fires-all.csv.zip' y 'master_data.xlsx'.")
     st.stop()
 
 # ------------------------------------------------------
-# 3. BARRA LATERAL (FILTROS ACTUALIZADOS)
+# 3. BARRA LATERAL (FILTROS)
 # ------------------------------------------------------
 st.sidebar.header("🔍 Filtros de Búsqueda")
 
@@ -118,7 +141,7 @@ años = sorted(df.index.year.unique())
 min_year, max_year = st.sidebar.select_slider("Rango de años", options=años, value=(min(años), max(años)))
 df_filtrado = df[(df.index.year >= min_year) & (df.index.year <= max_year)]
 
-# B. Filtros Geográficos (USANDO LOS NOMBRES, NO LOS IDs)
+# B. Filtros Geográficos (USANDO LOS NOMBRES)
 # Comunidad
 lista_comunidades = ["Todas"] + sorted(df_filtrado['nombre_comunidad'].astype(str).unique().tolist())
 comunidad_sel = st.sidebar.selectbox("Comunidad Autónoma", lista_comunidades)
@@ -144,7 +167,7 @@ if municipio_sel != "Todos":
 # 4. DASHBOARD 
 # ------------------------------------------------------
 st.title("🔥 Visualización de Incendios en España")
-st.markdown(f"Datos: **{min_year}** - **{max_year}**")
+st.markdown(f"Mostrando datos: **{min_year}** - **{max_year}**")
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Incendios", f"{len(df_filtrado):,}")
@@ -156,22 +179,22 @@ st.divider()
 
 # --- MAPA ---
 st.subheader(f"📍 Mapa de incidentes")
+# Para el mapa, quitamos los que no tienen coordenadas
 df_mapa = df_filtrado.dropna(subset=['lat', 'lng'])
 
 if not df_mapa.empty:
     if len(df_mapa) > 2000:
-        st.warning(f"⚠️ Mostrando los primeros 1000 incidentes de {len(df_mapa)} encontrados.")
+        st.warning(f"⚠️ Hay {len(df_mapa)} puntos. Se muestran los primeros 1000 para optimizar.")
         df_mapa = df_mapa.head(1000) 
     
     centro = [df_mapa['lat'].mean(), df_mapa['lng'].mean()]
     m = folium.Map(location=centro, zoom_start=6)
 
     for i, row in df_mapa.iterrows():
-        # Color según gravedad
         sup = row['superficie']
         color = "darkred" if sup > 50 else "orange" if sup > 10 else "green"
 
-        # Popup: Usamos los nombres reales
+        # Popup
         html_popup = f"""
         <b>Muni:</b> {row.get('municipio', '')}<br>
         <b>Prov:</b> {row.get('nombre_provincia', '')}<br>
@@ -181,13 +204,14 @@ if not df_mapa.empty:
         
         folium.CircleMarker(
             location=[row['lat'], row['lng']],
-            radius=4, popup=folium.Popup(html_popup, max_width=200),
+            radius=4, 
+            popup=folium.Popup(html_popup, max_width=200),
             color=color, fill=True, fill_opacity=0.7
         ).add_to(m)
 
     st_folium(m, width="100%", height=500)
 else:
-    st.info("No hay datos geográficos para mostrar.")
+    st.info("No hay datos con coordenadas para mostrar en el mapa.")
 
 st.divider()
 
@@ -198,12 +222,17 @@ with c1:
     st.subheader("📈 Evolución Anual")
     df_anual = df_filtrado.resample('YE')['superficie'].sum().reset_index()
     if not df_anual.empty:
-        st.plotly_chart(px.line(df_anual, x='fecha', y='superficie', markers=True), use_container_width=True)
+        st.plotly_chart(
+            px.line(df_anual, x='fecha', y='superficie', markers=True), 
+            use_container_width=True
+        )
 
 with c2:
     st.subheader("📋 Causas")
-    # Usamos la columna traducida 'causa_texto'
     if 'causa_texto' in df_filtrado.columns:
         conteo = df_filtrado['causa_texto'].value_counts().reset_index()
         conteo.columns = ['Causa', 'Incidentes']
-        st.plotly_chart(px.pie(conteo.head(10), values='Incidentes', names='Causa', hole=0.4), use_container_width=True)
+        st.plotly_chart(
+            px.pie(conteo.head(10), values='Incidentes', names='Causa', hole=0.4), 
+            use_container_width=True
+        )
