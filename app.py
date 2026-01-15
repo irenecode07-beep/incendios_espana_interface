@@ -245,7 +245,7 @@ if pagina == "Inicio":
                 use_container_width=True
             )
 if pagina == "Predicción":
-    st.title("Predicción de Incendios")
+    st.title("📈 Predicción de Incendios")
 
     comunidades_provincias = {
         "Andalucía": ["Almería", "Cádiz", "Córdoba", "Granada", "Huelva", "Jaén", "Málaga", "Sevilla"],
