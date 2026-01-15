@@ -293,31 +293,36 @@ if pagina == "Predicción":
     )
 
     if st.button("Calcular"):
-        mes = fecha_actual.month
-    
-        if mes in [11, 12, 1, 2]:
-            porcentaje = random.uniform(5, 20)
-    
-        elif mes in [3, 4, 5]:
-            porcentaje = random.uniform(20, 40)
-    
-        elif mes in [6, 7, 8]:
-            porcentaje = random.uniform(40, 60)
-    
-        elif mes == [9,10]:
-            porcentaje = random.uniform(20, 40)
-    
-        porcentaje = round(porcentaje, 2)
-    
-        st.subheader("Resultado de la predicción")
-        st.metric(
-            label="Probabilidad estimada de incendio",
-            value=f"{porcentaje} %"
-        )
-    
-        st.write("Comunidad:", comunidad)
-        st.write("Provincia:", provincia)
-        st.write("Fecha seleccionada:", fecha_actual)
+
+        if provincia == "Todas":
+            st.error("❌ Es obligatorio seleccionar una provincia para realizar la predicción.")
+        
+        else:
+            mes = fecha_actual.month
+        
+            if mes in [11, 12, 1, 2]:
+                porcentaje = random.uniform(5, 20)
+        
+            elif mes in [3, 4, 5]:
+                porcentaje = random.uniform(20, 40)
+        
+            elif mes in [6, 7, 8]:
+                porcentaje = random.uniform(40, 60)
+        
+            elif mes == [9,10]:
+                porcentaje = random.uniform(20, 40)
+        
+            porcentaje = round(porcentaje, 2)
+        
+            st.subheader("Resultado de la predicción")
+            st.metric(
+                label="Probabilidad estimada de incendio",
+                value=f"{porcentaje} %"
+            )
+        
+            st.write("Comunidad:", comunidad)
+            st.write("Provincia:", provincia)
+            st.write("Fecha seleccionada:", fecha_actual)
 
 
 
