@@ -267,10 +267,6 @@ if pagina == "Predicción":
         "Ceuta": ["Ceuta"],
         "Melilla": ["Melilla"]
     }
-
-    if pagina == "Predicción":
-    st.title("Predicción de Incendios")
-
     # --- Comunidad Autónoma ---
     comunidad = st.selectbox(
         "Comunidad Autónoma",
