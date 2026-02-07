@@ -282,8 +282,7 @@ if pagina == "Predicción":
     
     comunidad = st.sidebar.selectbox(
         "Comunidad Autónoma", 
-        ["Todas"] + sorted(comunidades_provincias.keys()), 
-        index="Galicia",
+        "Galicia",
         disabled=True  # Esto bloquea el widget
     )
 
@@ -297,7 +296,8 @@ if pagina == "Predicción":
 
     provincia = st.selectbox(
         "Provincia",
-        ["Todas"] + provincias
+        "A Coruña",
+        disabled=True
     )
 
     fecha_actual = st.date_input(
