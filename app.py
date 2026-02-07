@@ -14,11 +14,11 @@ import numpy as np
 def cargar_recursos():
     model = joblib.load('modelo_incendios.pkl')
     # Asegúrate de haber exportado estos archivos desde tu notebook de entrenamiento
-    imputer = joblib.load('imputer.pkl') 
-    scaler = joblib.load('scaler.pkl')
-    return model, imputer, scaler
+    #imputer = joblib.load('imputer.pkl') 
+    #scaler = joblib.load('scaler.pkl')
+    return model#, imputer, scaler
 
-model, imputer, scaler = cargar_recursos()
+model = cargar_recursos()
 
 # Apply the cleaning function (reusing the one defined earlier in cell aZrz6PLmbLFb)
 def limpiar_decimales(val):
