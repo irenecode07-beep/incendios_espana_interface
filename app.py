@@ -12,13 +12,11 @@ import numpy as np
 
 @st.cache_resource
 def cargar_recursos():
-    model = joblib.load('modelo_incendios.pkl')
+    model = joblib.load('modelo_incendios_rf.pkl')
     # Asegúrate de haber exportado estos archivos desde tu notebook de entrenamiento
-    imputer = joblib.load('imputer.pkl') 
-    scaler = joblib.load('scaler.pkl')
-    return model, imputer, scaler
+    return model
 
-model, imputer, scaler = cargar_recursos()
+model = cargar_recursos()
 
 # Apply the cleaning function (reusing the one defined earlier in cell aZrz6PLmbLFb)
 def limpiar_decimales(val):
@@ -67,26 +65,10 @@ def fetch_aemet_values(station_id, fecha_fin):
         return None
 
 def predecir(datos):
-    # Define the features to be used for prediction
-    features_for_prediction = [
-        'mes', 'velmedia', 'temp_media_30d', 'viento_medio_7d',
-        'tmed', 'hrMedia', 'dia_del_ano', 'prec', 'lluvia_acum_30d'
-    ]
-
-    # Extract the last row of the preprocessed data (this will be a DataFrame)
-    X_new_raw = datos[features_for_prediction]
-
-    # Impute missing values using the *fitted* imputer
-    # Ensure imputer is defined and fitted globally or passed
-    X_new_imputed = imputer.transform(X_new_raw)
-
-    # Scale the data using the *fitted* scaler
-    # Ensure scaler is defined and fitted globally or passed
-    X_new_scaled = scaler.transform(X_new_imputed)
 
     try:
         # Predict probability using the transformed NumPy array
-        prediction_proba = model.predict_proba(X_new_raw)[0][1]
+        prediction_proba = model.predict_proba(datos)[0][1]
         return round(prediction_proba * 100, 2)
     except Exception as e:
         print(f"Error during prediction: {e}")
@@ -375,9 +357,19 @@ if pagina == "Predicción":
                 df_extremes_formatted['fecha'] = pd.to_datetime(df_extremes_formatted['fecha'])
                 df_extremes_formatted['dia_del_ano'] = df_extremes_formatted['fecha'].dt.dayofyear
                 df_extremes_formatted['mes'] = df_extremes_formatted['fecha'].dt.month
+
+                # Define the desired order of columns
+                desired_column_order = [
+                    'mes', 'dia_del_ano',
+                    'tmed', 'prec', 'velmedia', 'hrMedia',
+                    'lluvia_acum_30d', 'temp_media_30d', 'viento_medio_7d'
+                ]
+                
+                # Filter and reorder the DataFrame columns
+                df_extremes_formatted = df_extremes_formatted[desired_column_order]
     
                 # Realizar predicción real
-                valor_predicho = predecir(df_extremes_formatted.tail(1))
+                valor_predicho = predecir(df_extremes_formatted.head(0))
     
                 # Mostrar resultados
                 st.success("Predicción completada")
