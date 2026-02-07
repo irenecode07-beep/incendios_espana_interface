@@ -374,17 +374,17 @@ if pagina == "Predicción":
                 st.success("Predicción completada")
                 
                 col_res1, col_res2 = st.columns(2)
-                with col_res1:
-                    st.metric(label="Probabilidad de Incendio", value=f"{valor_predicho} %")
+                #with col_res1:
+                #    st.metric(label="Probabilidad de Incendio", value=f"{valor_predicho} %")
                 
                 with col_res2:
-                    # Mostrar un semáforo visual según el riesgo
+                    # Mostramos el porcentaje directamente en el mensaje de estado
                     if valor_predicho < 20:
-                        st.info("Riesgo Bajo")
+                        st.info(f"Riesgo Bajo: {valor_predicho}% de probabilidad")
                     elif valor_predicho < 50:
-                        st.warning("Riesgo Moderado")
+                        st.warning(f"Riesgo Moderado: {valor_predicho}% de probabilidad")
                     else:
-                        st.error("Riesgo Alto")
+                        st.error(f"Riesgo Alto: {valor_predicho}% de probabilidad")
             else:
                 st.error("No se pudieron obtener datos de AEMET para esa fecha.")
     
