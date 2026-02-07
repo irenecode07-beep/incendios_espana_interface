@@ -279,15 +279,11 @@ if pagina == "Predicción":
     #)
 
     #lista_comunidades = ["Todas"] + sorted(df_filtrado['nombre_comunidad'].astype(str).unique().tolist())
-    try:
-        idx_galicia = comunidades_provincias.index("Galicia")
-    except ValueError:
-        idx_galicia = 0
     
     comunidad = st.sidebar.selectbox(
         "Comunidad Autónoma", 
         lista_comunidades, 
-        index=idx_galicia,
+        index="Galicia",
         disabled=True  # Esto bloquea el widget
     )
 
