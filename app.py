@@ -14,9 +14,9 @@ import numpy as np
 def cargar_recursos():
     model = joblib.load('modelo_incendios.pkl')
     # Asegúrate de haber exportado estos archivos desde tu notebook de entrenamiento
-    #imputer = joblib.load('imputer.pkl') 
-    #scaler = joblib.load('scaler.pkl')
-    return model#, imputer, scaler
+    imputer = joblib.load('imputer.pkl') 
+    scaler = joblib.load('scaler.pkl')
+    return model, imputer, scaler
 
 model = cargar_recursos()
 
@@ -86,7 +86,7 @@ def predecir(datos):
 
     try:
         # Predict probability using the transformed NumPy array
-        prediction_proba = model.predict_proba(X_new_scaled)[0][1]
+        prediction_proba = model.predict_proba(X_new_raw)[0][1]
         return round(prediction_proba * 100, 2)
     except Exception as e:
         print(f"Error during prediction: {e}")
