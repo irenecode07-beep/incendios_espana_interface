@@ -273,9 +273,22 @@ if pagina == "Predicción":
         "Melilla": ["Melilla"]
     }
     # --- Comunidad Autónoma ---
-    comunidad = st.selectbox(
-        "Comunidad Autónoma",
-        ["Todas"] + sorted(comunidades_provincias.keys())
+    #comunidad = st.selectbox(
+    #    "Comunidad Autónoma",
+    #    ["Todas"] + sorted(comunidades_provincias.keys())
+    #)
+
+    lista_comunidades = ["Todas"] + sorted(df_filtrado['nombre_comunidad'].astype(str).unique().tolist())
+    try:
+        idx_galicia = lista_comunidades.index("Galicia")
+    except ValueError:
+        idx_galicia = 0
+    
+    comunidad = st.sidebar.selectbox(
+        "Comunidad Autónoma", 
+        lista_comunidades, 
+        index=idx_galicia,
+        disabled=True  # Esto bloquea el widget
     )
 
     # --- Provincias ---
