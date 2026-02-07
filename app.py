@@ -282,7 +282,7 @@ if pagina == "Predicción":
     
     comunidad = st.sidebar.selectbox(
         "Comunidad Autónoma", 
-        lista_comunidades, 
+        ["Todas"] + sorted(comunidades_provincias.keys()), 
         index="Galicia",
         disabled=True  # Esto bloquea el widget
     )
