@@ -18,7 +18,7 @@ def cargar_recursos():
     scaler = joblib.load('scaler.pkl')
     return model, imputer, scaler
 
-model = cargar_recursos()
+model, imputer, scaler = cargar_recursos()
 
 # Apply the cleaning function (reusing the one defined earlier in cell aZrz6PLmbLFb)
 def limpiar_decimales(val):
