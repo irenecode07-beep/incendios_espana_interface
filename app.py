@@ -278,9 +278,9 @@ if pagina == "Predicción":
     #    ["Todas"] + sorted(comunidades_provincias.keys())
     #)
 
-    lista_comunidades = ["Todas"] + sorted(df_filtrado['nombre_comunidad'].astype(str).unique().tolist())
+    #lista_comunidades = ["Todas"] + sorted(df_filtrado['nombre_comunidad'].astype(str).unique().tolist())
     try:
-        idx_galicia = lista_comunidades.index("Galicia")
+        idx_galicia = comunidades_provincias.index("Galicia")
     except ValueError:
         idx_galicia = 0
     
