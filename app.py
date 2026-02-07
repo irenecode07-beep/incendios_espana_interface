@@ -368,7 +368,7 @@ if pagina == "Predicción":
                 df_extremes_formatted = df_extremes_formatted[desired_column_order]
     
                 # Realizar predicción real
-                valor_predicho = predecir(df_extremes_formatted.head(0))
+                valor_predicho = predecir(df_extremes_formatted.tail(1))
     
                 # Mostrar resultados
                 st.success("Predicción completada")
