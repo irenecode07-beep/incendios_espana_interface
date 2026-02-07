@@ -7,6 +7,79 @@ import plotly.express as px
 from datetime import date
 import random
 import joblib
+import requests
+
+# Apply the cleaning function (reusing the one defined earlier in cell aZrz6PLmbLFb)
+def limpiar_decimales(val):
+    if pd.isna(val): return np.nan
+    if isinstance(val, (int, float)): return float(val)
+    val = str(val).replace(',', '.')
+    try:
+        return float(val)
+    except:
+        return np.nan
+
+def fetch_aemet_values(station_id, fecha_fin):
+
+    AEMET_API_KEY = st.secrets["AEMET_API_KEY"]
+
+    fecha_ini = fecha_fin - pd.DateOffset(days=30)
+
+    # Transform to 'YYYY-MM-DDTHH:MM:SSUTC' format
+    fecha_fin_formatted = fecha_fin.strftime('%Y-%m-%dT%H:%M:%SUTC')
+    fecha_ini_formatted = fecha_ini.strftime('%Y-%m-%dT%H:%M:%SUTC')
+    
+    #base_url = f"https://opendata.aemet.es/opendata/api/valores/climatologicos/valoresextremos/parametro/P/estacion/{station_id}"
+    base_url = f"https://opendata.aemet.es/opendata/api/valores/climatologicos/diarios/datos/fechaini/{fecha_ini_formatted}/fechafin/{fecha_fin_formatted}/estacion/{station_id}"
+    headers = {
+        'cache-control': "no-cache",
+        'api_key': AEMET_API_KEY
+    }
+
+    try:
+        # Step 1: Request the data URL
+        response = requests.get(base_url, headers=headers)
+        response.raise_for_status()
+        res_json = response.json()
+        
+        if res_json['estado'] == 200:
+            data_url = res_json['datos']
+            # Step 2: Download the actual data from the provided link
+            data_response = requests.get(data_url)
+            extremes_data = data_response.json()
+            return extremes_data
+        else:
+            print(f"Error AEMET: {res_json['descripcion']}")
+            return None
+    except Exception as e:
+        print(f"Error de conexión: {e}")
+        return None
+
+def predecir(datos):
+    # Define the features to be used for prediction
+    features_for_prediction = [
+        'mes', 'velmedia', 'temp_media_30d', 'viento_medio_7d',
+        'tmed', 'hrMedia', 'dia_del_ano', 'prec', 'lluvia_acum_30d'
+    ]
+
+    # Extract the last row of the preprocessed data (this will be a DataFrame)
+    X_new_raw = datos[features_for_prediction]
+
+    # Impute missing values using the *fitted* imputer
+    # Ensure imputer is defined and fitted globally or passed
+    X_new_imputed = imputer.transform(X_new_raw)
+
+    # Scale the data using the *fitted* scaler
+    # Ensure scaler is defined and fitted globally or passed
+    X_new_scaled = scaler.transform(X_new_imputed)
+
+    try:
+        # Predict probability using the transformed NumPy array
+        prediction_proba = model.predict_proba(X_new_scaled)[0][1]
+        return prediction_proba * 100
+    except Exception as e:
+        print(f"Error during prediction: {e}")
+        return 0.0
 
 # ------------------------------------------------------
 # 1. CONFIGURACIÓN DE LA PÁGINA
@@ -270,6 +343,41 @@ if pagina == "Predicción":
 
     if st.button("Calcular"):
 
+        fecha_fin = pd.to_datetime(fecha_actual)
+
+        extremes_data_dict = fetch_aemet_values(1387,fecha_fin)
+
+        df_extremes = pd.DataFrame([extremes_data_dict])
+        extremes_list = [df_extremes.iloc[0][col] for col in df_extremes.columns]
+        
+        # Create a new DataFrame from the list of dictionaries
+        df_extremes_formatted = pd.DataFrame(extremes_list)
+        
+        df_extremes_formatted = df_extremes_formatted[[
+            'fecha', 'velmedia', 'tmed', 'hrMedia', 'prec'
+        ]]
+
+        cols_to_correct_extremes = ['tmed', 'prec', 'velmedia']
+        
+        for col in cols_to_correct_extremes:
+            if col in df_extremes_formatted.columns:
+                df_extremes_formatted[col] = df_extremes_formatted[col].apply(limpiar_decimales)
+        
+        # Now, recalculate the rolling features
+        df_extremes_formatted['lluvia_acum_30d'] = df_extremes_formatted['prec'].rolling(window=30, min_periods=1).sum()
+        df_extremes_formatted['temp_media_30d'] = df_extremes_formatted['tmed'].rolling(window=30, min_periods=1).mean()
+        df_extremes_formatted['viento_medio_7d'] = df_extremes_formatted['velmedia'].rolling(window=7, min_periods=1).mean()
+
+        df_extremes_formatted['fecha'] = pd.to_datetime(df_extremes_formatted['fecha'])
+
+        # Get the day of the year
+        df_extremes_formatted['dia_del_ano'] = df_extremes_formatted['fecha'].dt.dayofyear
+        df_extremes_formatted['mes'] = df_extremes_formatted['fecha'].dt.month
+
+        model = joblib.load('modelo_incendios.pkl')
+
+        valor = predecir(df_extremes_formatted.tail(1))
+
         if provincia == "Todas":
             st.error("❌ Es obligatorio seleccionar una provincia para realizar la predicción.")
         
@@ -300,6 +408,10 @@ if pagina == "Predicción":
             st.write("Provincia:", provincia)
             st.write("Fecha seleccionada:", fecha_actual)
 
-
+            st.metric(
+                label="Probabilidad estimada de incendio",
+                value=f"{valor} %"
+            )
+            
 
 
