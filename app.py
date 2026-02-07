@@ -6,6 +6,7 @@ import zipfile
 import plotly.express as px
 from datetime import date
 import random
+import joblib
 
 # ------------------------------------------------------
 # 1. CONFIGURACIÓN DE LA PÁGINA
@@ -21,6 +22,9 @@ pagina = st.sidebar.radio(
     "Selecciona una opción",
     ("Inicio", "Predicción")
 )
+
+model = joblib.load('modelo_incendios.pkl')
+
 # ------------------------------------------------------
 # 2. CARGA DE DATOS Y MAESTROS
 # ------------------------------------------------------
