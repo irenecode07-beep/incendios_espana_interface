@@ -8,6 +8,17 @@ from datetime import date
 import random
 import joblib
 import requests
+import numpy as np
+
+@st.cache_resource
+def cargar_recursos():
+    model = joblib.load('modelo_incendios.pkl')
+    # Asegúrate de haber exportado estos archivos desde tu notebook de entrenamiento
+    imputer = joblib.load('imputer.pkl') 
+    scaler = joblib.load('scaler.pkl')
+    return model, imputer, scaler
+
+model, imputer, scaler = cargar_recursos()
 
 # Apply the cleaning function (reusing the one defined earlier in cell aZrz6PLmbLFb)
 def limpiar_decimales(val):
@@ -76,7 +87,7 @@ def predecir(datos):
     try:
         # Predict probability using the transformed NumPy array
         prediction_proba = model.predict_proba(X_new_scaled)[0][1]
-        return prediction_proba * 100
+        return round(prediction_proba * 100, 2)
     except Exception as e:
         print(f"Error during prediction: {e}")
         return 0.0
@@ -342,76 +353,51 @@ if pagina == "Predicción":
     )
 
     if st.button("Calcular"):
+        with st.spinner('Obteniendo datos climáticos y calculando...'):
+            fecha_fin = pd.to_datetime(fecha_actual)
+    
+            extremes_data_dict = fetch_aemet_values(1387,fecha_fin)
 
-        fecha_fin = pd.to_datetime(fecha_actual)
-
-        extremes_data_dict = fetch_aemet_values(1387,fecha_fin)
-
-        df_extremes = pd.DataFrame([extremes_data_dict])
-        extremes_list = [df_extremes.iloc[0][col] for col in df_extremes.columns]
-        
-        # Create a new DataFrame from the list of dictionaries
-        df_extremes_formatted = pd.DataFrame(extremes_list)
-        
-        df_extremes_formatted = df_extremes_formatted[[
-            'fecha', 'velmedia', 'tmed', 'hrMedia', 'prec'
-        ]]
-
-        cols_to_correct_extremes = ['tmed', 'prec', 'velmedia']
-        
-        for col in cols_to_correct_extremes:
-            if col in df_extremes_formatted.columns:
-                df_extremes_formatted[col] = df_extremes_formatted[col].apply(limpiar_decimales)
-        
-        # Now, recalculate the rolling features
-        df_extremes_formatted['lluvia_acum_30d'] = df_extremes_formatted['prec'].rolling(window=30, min_periods=1).sum()
-        df_extremes_formatted['temp_media_30d'] = df_extremes_formatted['tmed'].rolling(window=30, min_periods=1).mean()
-        df_extremes_formatted['viento_medio_7d'] = df_extremes_formatted['velmedia'].rolling(window=7, min_periods=1).mean()
-
-        df_extremes_formatted['fecha'] = pd.to_datetime(df_extremes_formatted['fecha'])
-
-        # Get the day of the year
-        df_extremes_formatted['dia_del_ano'] = df_extremes_formatted['fecha'].dt.dayofyear
-        df_extremes_formatted['mes'] = df_extremes_formatted['fecha'].dt.month
-
-        model = joblib.load('modelo_incendios.pkl')
-
-        valor = predecir(df_extremes_formatted.tail(1))
-
-        if provincia == "Todas":
-            st.error("❌ Es obligatorio seleccionar una provincia para realizar la predicción.")
-        
-        else:
-            mes = fecha_actual.month
-        
-            if mes in [11, 12, 1, 2]:
-                porcentaje = random.uniform(5, 20)
-        
-            elif mes in [3, 4, 5]:
-                porcentaje = random.uniform(20, 40)
-        
-            elif mes in [6, 7, 8]:
-                porcentaje = random.uniform(40, 60)
-        
-            elif mes == [9,10]:
-                porcentaje = random.uniform(20, 40)
-        
-            porcentaje = round(porcentaje, 2)
-        
-            st.subheader("Resultado de la predicción")
-            st.metric(
-                label="Probabilidad estimada de incendio",
-                value=f"{porcentaje} %"
-            )
-        
-            st.write("Comunidad:", comunidad)
-            st.write("Provincia:", provincia)
-            st.write("Fecha seleccionada:", fecha_actual)
-
-            st.metric(
-                label="Probabilidad estimada de incendio",
-                value=f"{valor} %"
-            )
+            if extremes_data_dict:
+                df_extremes_formatted = pd.DataFrame(extremes_data_dict)
+            
+                # Limpieza de columnas
+                cols_to_correct = ['tmed', 'prec', 'velmedia', 'hrMedia']
+                for col in cols_to_correct:
+                    if col in df_extremes_formatted.columns:
+                        df_extremes_formatted[col] = df_extremes_formatted[col].apply(limpiar_decimales)
+                
+                # Recalcular features (asegúrate de que AEMET devuelva suficientes días para el rolling)
+                df_extremes_formatted['lluvia_acum_30d'] = df_extremes_formatted['prec'].rolling(window=30, min_periods=1).sum()
+                df_extremes_formatted['temp_media_30d'] = df_extremes_formatted['tmed'].rolling(window=30, min_periods=1).mean()
+                df_extremes_formatted['viento_medio_7d'] = df_extremes_formatted['velmedia'].rolling(window=7, min_periods=1).mean()
+                
+                df_extremes_formatted['fecha'] = pd.to_datetime(df_extremes_formatted['fecha'])
+                df_extremes_formatted['dia_del_ano'] = df_extremes_formatted['fecha'].dt.dayofyear
+                df_extremes_formatted['mes'] = df_extremes_formatted['fecha'].dt.month
+    
+                # Realizar predicción real
+                valor_predicho = predecir(df_extremes_formatted.tail(1))
+    
+                # Mostrar resultados
+                st.success("Predicción completada")
+                
+                col_res1, col_res2 = st.columns(2)
+                with col_res1:
+                    st.metric(label="Probabilidad de Incendio", value=f"{valor_predicho} %")
+                
+                with col_res2:
+                    # Mostrar un semáforo visual según el riesgo
+                    if valor_predicho < 20:
+                        st.info("Riesgo Bajo")
+                    elif valor_predicho < 50:
+                        st.warning("Riesgo Moderado")
+                    else:
+                        st.error("Riesgo Alto")
+            else:
+                st.error("No se pudieron obtener datos de AEMET para esa fecha.")
+    
+            
             
 
 
