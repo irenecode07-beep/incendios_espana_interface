@@ -89,7 +89,6 @@ pagina = st.sidebar.radio(
     ("Inicio", "Predicción")
 )
 
-model = joblib.load('modelo_incendios.pkl')
 
 # ------------------------------------------------------
 # 2. CARGA DE DATOS Y MAESTROS
