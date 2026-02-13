@@ -97,7 +97,7 @@ pagina = st.sidebar.radio(
 if pagina == "Inicio":
     def cargar_maestros():
         """Carga los metadatos y devuelve diccionarios para traducir IDs a Texto."""
-        archivo_meta = 'master_data.xlsx'
+        archivo_meta = 'master_data_new.xlsx'
         maestros = {}
     
         try:
