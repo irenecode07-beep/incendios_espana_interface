@@ -136,7 +136,7 @@ if pagina == "Inicio":
         try:
             # 1. Cargamos diccionarios
             diccionarios = cargar_maestros()
-            
+            print(diccionarios)
             with zipfile.ZipFile(archivo_zip) as z:
                 archivos_csv = [f for f in z.namelist() if f.endswith('.csv') and '__MACOSX' not in f]
                 
