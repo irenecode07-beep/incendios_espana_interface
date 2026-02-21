@@ -77,13 +77,15 @@ def predecir(datos):
 
         datos = datos[expected_features]
         datos = datos.fillna(0)
-        st.write(model.keys())
+        st.write("Columnas entrenamiento:", len(model["columnas"]))
+        st.write("Columnas entrada:", len(datos.columns))
         # Predict probability using the transformed NumPy array
         prediction_proba = model['modelo'].predict_proba(datos)[0][1]
         st.write(prediction_proba)
         return round(prediction_proba * 100, 2)
     except Exception as e:
         print(f"Error during prediction: {e}")
+        st.error(e)
         return 0.0
 
 def carga_datos_earth(municipio):
