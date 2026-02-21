@@ -328,6 +328,32 @@ if pagina == "Predicción":
         disabled=True
     )
 
+    lista_municipios = [
+        "ABEGONDO","AMES","ARANGA","ARES","ARTEIXO","ARZÚA","BAÑA, A",
+        "BETANZOS","BOIMORTO","BOIRO","BOQUEIXÓN-CASANOVA","BRIÓN",
+        "CABANA DE BERGANTIÑOS","CAMARIÑAS","CAMBRE","CAPELA, A",
+        "CARBALLO","CARNOTA","CARRAL","CEDEIRA","CEE","CERCEDA",
+        "CERDIDO","CESURAS","COIRÓS","CORISTANCO","CORUÑA, A",
+        "CULLEREDO","CURTIS","DODRO","DUMBRÍA","FENE","FERROL",
+        "FISTERRA","FRADES","IRIXOA","LAXE","LARACHA, A","LOUSAME",
+        "MALPICA DE BERGANTIÑOS","MAÑÓN","MAZARICOS","MELIDE",
+        "MESÍA","MOECHE","MONFERO","MUXÍA","MUROS","NARÓN","NEDA",
+        "NEGREIRA","NOIA","OLEIROS","ORDES","OROSO","ORTIGUEIRA",
+        "OUTES","OZA DOS RÍOS","PADERNE","PADRÓN","PINO, O",
+        "POBRA DO CARAMIÑAL, A","PONTECESO","PONTEDEUME",
+        "PONTES DE GARCIA RODRIGUEZ, AS","PORTO DO SON","RIANXO",
+        "RIBEIRA","ROIS","SADA","SAN SADURNIÑO","SANTA COMBA",
+        "SANTIAGO DE COMPOSTELA","SANTISO","SOBRADO","SOMOZAS, AS",
+        "TEO","TOQUES","TORDOIA","TOURO","TRAZO","VALDOVIÑO",
+        "VAL DO DUBRA","VEDRA","VILASANTAR","VILARMAIOR",
+        "VIMIANZO","ZAS","CARIÑO","OZA-CESURAS","OTRA PROVINCIA"
+    ]
+
+    municipio = st.selectbox(
+        "Municipio",
+        sorted(lista_municipios)
+    )
+
     fecha_actual = st.date_input(
         "Fecha para calcular",
         value=date.today()
@@ -337,7 +363,8 @@ if pagina == "Predicción":
         with st.spinner('Obteniendo datos climáticos y calculando...'):
             fecha_fin = pd.to_datetime(fecha_actual)
     
-            extremes_data_dict = fetch_aemet_values(1387,fecha_fin)
+            station_id = station_por_municipio.get(municipio, 1387)
+            extremes_data_dict = fetch_aemet_values(station_id, fecha_fin)
 
             if extremes_data_dict:
                 df_extremes_formatted = pd.DataFrame(extremes_data_dict)
