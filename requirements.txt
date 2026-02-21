@@ -1,7 +1,7 @@
+folium
 streamlit
 pandas
 seaborn
-folium
 streamlit-folium
 matplotlib
 mapclassify
