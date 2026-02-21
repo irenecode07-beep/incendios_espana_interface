@@ -67,6 +67,16 @@ def fetch_aemet_values(station_id, fecha_fin):
 def predecir(datos):
 
     try:
+        st.write("predecir")
+        expected_features = model['modelo'].feature_names_in_
+
+        for col in expected_features:
+            if col not in datos.columns:
+                st.write(col)
+                datos[col] = 0
+
+        datos = datos[expected_features]
+        datos = datos.fillna(0)
         # Predict probability using the transformed NumPy array
         prediction_proba = model['modelo'].predict_proba(datos)[0][1]
         st.write(prediction_proba)
