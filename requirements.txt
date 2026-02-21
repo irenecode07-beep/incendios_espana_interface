@@ -7,4 +7,3 @@ matplotlib
 mapclassify
 openpyxl
 plotly.express
-scikit-learn
