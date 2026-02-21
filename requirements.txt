@@ -7,3 +7,4 @@ matplotlib
 mapclassify
 openpyxl
 plotly.express
+scikit-learn==1.3.2
