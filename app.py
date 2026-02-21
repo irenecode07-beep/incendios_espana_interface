@@ -324,7 +324,34 @@ if pagina == "Inicio":
     # 3. BARRA LATERAL (FILTROS)
     # ------------------------------------------------------
     st.sidebar.header("🔍 Filtros de Búsqueda")
+
+    # A. Filtro por Años
+    años = sorted(df.index.year.unique())
+    min_year, max_year = st.sidebar.select_slider("Rango de años", options=años, value=(min(años), max(años)))
+    df_filtrado = df[(df.index.year >= min_year) & (df.index.year <= max_year)]
+
+    print([col for col in df_filtrado.columns])
+    # B. Filtros Geográficos (USANDO LOS NOMBRES)
+    # Comunidad
+    lista_comunidades = ["Todas"] + sorted(df_filtrado['nombre_comunidad'].astype(str).unique().tolist())
+    comunidad_sel = st.sidebar.selectbox("Comunidad Autónoma", lista_comunidades)
     
+    if comunidad_sel != "Todas":
+        df_filtrado = df_filtrado[df_filtrado['nombre_comunidad'] == comunidad_sel]
+    
+    # Provincia
+    lista_provincias = ["Todas"] + sorted(df_filtrado['nombre_provincia'].astype(str).unique().tolist())
+    provincia_sel = st.sidebar.selectbox("Provincia", lista_provincias)
+    
+    if provincia_sel != "Todas":
+        df_filtrado = df_filtrado[df_filtrado['nombre_provincia'] == provincia_sel]
+    
+    # Municipio
+    lista_municipios = ["Todos"] + sorted(df_filtrado['municipio'].astype(str).unique().tolist())
+    municipio_sel = st.sidebar.selectbox("Municipio", lista_municipios)
+    
+    if municipio_sel != "Todos":
+        df_filtrado = df_filtrado[df_filtrado['municipio'] == municipio_sel]
     
     
     # ------------------------------------------------------
