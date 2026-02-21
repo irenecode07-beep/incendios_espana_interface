@@ -430,7 +430,7 @@ if pagina == "Inicio":
 if pagina == "Predicción":
     st.title("📈 Predicción de Incendios")
     
-    comunidad = st.sidebar.selectbox(
+    comunidad = st.selectbox(
         "Comunidad Autónoma", 
         "Galicia",
         disabled=True  # Esto bloquea el widget
