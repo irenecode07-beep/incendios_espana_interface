@@ -77,9 +77,9 @@ def predecir(datos):
 
         datos = datos[expected_features]
         datos = datos.fillna(0)
-        st.write(type(model))
+        st.write(model.keys())
         # Predict probability using the transformed NumPy array
-        prediction_proba = model.predict_proba(datos)[0][1]
+        prediction_proba = model['modelo'].predict_proba(datos)[0][1]
         st.write(prediction_proba)
         return round(prediction_proba * 100, 2)
     except Exception as e:
