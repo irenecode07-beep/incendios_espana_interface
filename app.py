@@ -79,7 +79,7 @@ def predecir(datos):
         datos = datos.fillna(0)
         st.write("Columnas entrenamiento:", len(model["columnas"]))
         st.write("Columnas entrada:", len(datos.columns))
-        st.write(sklearn.__version__)
+        
         # Predict probability using the transformed NumPy array
         prediction_proba = model['modelo'].predict_proba(datos)[0][1]
         st.write(prediction_proba)
