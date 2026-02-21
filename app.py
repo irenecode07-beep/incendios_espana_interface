@@ -69,6 +69,7 @@ def predecir(datos):
     try:
         # Predict probability using the transformed NumPy array
         prediction_proba = model['modelo'].predict_proba(datos)[0][1]
+        print(prediction_proba)
         return round(prediction_proba * 100, 2)
     except Exception as e:
         print(f"Error during prediction: {e}")
@@ -575,6 +576,8 @@ if pagina == "Predicción":
                 
                 # Realizar predicción real
                 valor_predicho = predecir(df_extremes_formatted.tail(1))
+
+                print(valor_predicho)
     
                 # Mostrar resultados
                 st.success("Predicción completada")
