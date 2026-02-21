@@ -329,7 +329,8 @@ if pagina == "Inicio":
     años = sorted(df.index.year.unique())
     min_year, max_year = st.sidebar.select_slider("Rango de años", options=años, value=(min(años), max(años)))
     df_filtrado = df[(df.index.year >= min_year) & (df.index.year <= max_year)]
-    
+
+    print([col for col in df_filtrado.columns])
     # B. Filtros Geográficos (USANDO LOS NOMBRES)
     # Comunidad
     lista_comunidades = ["Todas"] + sorted(df_filtrado['nombre_comunidad'].astype(str).unique().tolist())
