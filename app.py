@@ -69,7 +69,7 @@ def predecir(datos):
     try:
         # Predict probability using the transformed NumPy array
         prediction_proba = model['modelo'].predict_proba(datos)[0][1]
-        print(prediction_proba)
+        st.write(prediction_proba)
         return round(prediction_proba * 100, 2)
     except Exception as e:
         print(f"Error during prediction: {e}")
@@ -557,8 +557,12 @@ if pagina == "Predicción":
                 if 'fecha' in df_extremes_formatted.columns:
                     df_extremes_formatted.set_index('fecha', inplace=True)
                 df_extremes_formatted.index = pd.to_datetime(df_extremes_formatted.index)
+
+                st.write(df_extremes_formatted.tail(1))
                 
                 new_features(df_extremes_formatted)
+
+                st.write(df_extremes_formatted.tail(1))
                 
                   # Define the desired order of columns
                 desired_column_order = ['tmed', 'tmin', 'tmax', 'prec', 'dir', 'velmedia',
@@ -573,11 +577,13 @@ if pagina == "Predicción":
                 
                 # Filter and reorder the DataFrame columns
                 df_extremes_formatted = df_extremes_formatted[desired_column_order]
+
+                st.write(df_extremes_formatted.tail(1))
                 
                 # Realizar predicción real
                 valor_predicho = predecir(df_extremes_formatted.tail(1))
 
-                print(valor_predicho)
+                st.write(valor_predicho)
     
                 # Mostrar resultados
                 st.success("Predicción completada")
