@@ -359,6 +359,85 @@ if pagina == "Predicción":
         value=date.today()
     )
 
+    # ------------------------------------------------------
+    # AEMET STATIONS POR MUNICIPIO (A CORUÑA)
+    # ------------------------------------------------------
+    
+    station_por_municipio = {
+    
+        # Santiago area
+        "SANTIAGO DE COMPOSTELA": 1475,
+        "AMES": 1475,
+        "TEO": 1475,
+        "BRIÓN": 1475,
+        "VEDRA": 1475,
+        "BOQUEIXÓN-CASANOVA": 1475,
+        "VAL DO DUBRA": 1475,
+    
+        # A Coruña city / coast
+        "CORUÑA, A": 1387,
+        "ARTEIXO": 1387,
+        "CAMBRE": 1387,
+        "CULLEREDO": 1387,
+        "OLEIROS": 1387,
+        "SADA": 1387,
+        "CARRAL": 1387,
+    
+        # Ferrol area
+        "FERROL": 1111,
+        "NARÓN": 1111,
+        "NEDA": 1111,
+        "FENE": 1111,
+        "SAN SADURNIÑO": 1111,
+        "VALDOVIÑO": 1111,
+        "MOECHE": 1111,
+        "SOMOZAS, AS": 1111,
+    
+        # Bergantiños / Costa da Morte
+        "CARBALLO": 1428,
+        "MALPICA DE BERGANTIÑOS": 1428,
+        "PONTECESO": 1428,
+        "CABANA DE BERGANTIÑOS": 1428,
+        "CORISTANCO": 1428,
+        "LAXE": 1428,
+        "ZAS": 1428,
+        "VIMIANZO": 1428,
+        "CAMARIÑAS": 1428,
+        "CEE": 1428,
+        "FISTERRA": 1428,
+        "MUXÍA": 1428,
+        "DUMBRÍA": 1428,
+        "CARNOTA": 1428,
+    
+        # Interior
+        "ARZÚA": 1505,
+        "MELIDE": 1505,
+        "BOIMORTO": 1505,
+        "FRADES": 1505,
+        "MESÍA": 1505,
+        "SOBRADO": 1505,
+        "TOURO": 1505,
+        "SANTISO": 1505,
+        "CURTIS": 1505,
+        "VILASANTAR": 1505,
+        "IRIXOA": 1505,
+        "MONFERO": 1505,
+        "ARANGA": 1505,
+        "BETANZOS": 1505,
+        "PADERNE": 1505,
+        "COIRÓS": 1505,
+        "CESURAS": 1505,
+        "OZA DOS RÍOS": 1505,
+        "OZA-CESURAS": 1505,
+        "VILARMAIOR": 1505,
+        "MAÑÓN": 1505,
+        "CARIÑO": 1505,
+        "ORTIGUEIRA": 1505,
+    
+        # Default fallback
+        "OTRA PROVINCIA": 1387
+    }
+
     if st.button("Calcular"):
         with st.spinner('Obteniendo datos climáticos y calculando...'):
             fecha_fin = pd.to_datetime(fecha_actual)
