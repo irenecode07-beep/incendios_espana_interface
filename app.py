@@ -12,7 +12,7 @@ import numpy as np
 
 @st.cache_resource
 def cargar_recursos():
-    model = joblib.load('modelo_incendios_rf.pkl')
+    model = joblib.load('modelo_incendios_completo.pkl')
     # Asegúrate de haber exportado estos archivos desde tu notebook de entrenamiento
     return model
 
@@ -68,11 +68,109 @@ def predecir(datos):
 
     try:
         # Predict probability using the transformed NumPy array
-        prediction_proba = model.predict_proba(datos)[0][1]
+        prediction_proba = model['modelo'].predict_proba(datos)[0][1]
         return round(prediction_proba * 100, 2)
     except Exception as e:
         print(f"Error during prediction: {e}")
         return 0.0
+
+def carga_datos_earth(municipio):
+    df_earth = pd.read_excel("municipios_earth.xlsx")   
+    return df_earth[df_earth['municipio']==municipio]     
+        
+        
+def new_features(df):
+  
+    for col in df.columns:
+        if col != 'superficie':
+            df[col] = pd.to_numeric(
+                df[col].astype(str).str.replace(',', '.'),
+                errors='coerce'
+            )
+
+    df['regla_30_30_30'] = (
+        (df['tmax'] >= 30) &
+        (df['hrMedia'] <= 30) &
+        (df['velmedia'] >= 30)
+    ).astype(int)
+
+    # 2. Índices de propagación del fuego
+    df['temp_x_viento'] = df['tmax'] * df['velmedia']  # Factor de propagación
+    df['sequedad'] = 100 - df['hrMedia']  # Sequedad del aire
+    df['viento_seco'] = df['velmedia'] * df['sequedad']  # Viento seco
+
+    # 3. Variaciones térmicas y de presión
+    df['rango_termico'] = df['tmax'] - df['tmin']  # Variación térmica diaria
+    df['rango_presion'] = df['presMax'] - df['presMin']  # Variación de presión
+
+    # 4. Medias móviles 7 días (tendencias recientes)
+    for col in ['tmax', 'tmin', 'prec', 'tmed', 'velmedia', 'hrMedia', 'sol', 'presMax']:
+        if col in df.columns:
+            df[f'{col}_7d'] = df[col].rolling(7, min_periods=1).mean()
+
+    # 5. Indicadores de sequía
+    df['dia_seco'] = (df['prec'] < 1).astype(int)
+    df['lluvia_semana'] = df['prec'].rolling(7, min_periods=1).sum()
+    df['lluvia_mes'] = df['prec'].rolling(30, min_periods=1).sum()
+    df['deficit_lluvia'] = (5 - df['prec']).clip(lower=0)
+    # 6. Interacciones importantes
+    df['temp_humedad'] = df['tmax'] * df['hrMedia']  # Interacción temperatura-humedad
+    df['presion_baja'] = (df['presMin'] < 1010).astype(int)  # Indicador presión baja
+
+    # 7. Estacionalidad
+    df['mes'] = df.index.month
+    df['dia_año'] = df.index.dayofyear
+    df['es_verano'] = df['mes'].isin([6, 7, 8, 9]).astype(int)
+
+    print(f"\n✓ Total de variables en el dataset: {len(df.columns)}")
+
+    # 8 Sistema Canadiense - estándar internacional
+
+    def calcular_fwi_simple(temp, hr, viento, prec):
+        """Fire Weather Index simplificado"""
+        # FFMC - Fine Fuel Moisture
+        mo = 147.2 * (101 - hr) / (59.5 + hr)
+        ffmc = 59.5 * (250 - mo) / (147.2 + mo) if mo < 250 else 101
+
+        # ISI - Initial Spread Index
+        fw = np.exp(0.05039 * viento)
+        fm = 147.2 * (101 - ffmc) / (59.5 + ffmc)
+        isi = fw * np.exp(0.000055 * fm)
+
+        # FWI simplificado
+        fwi = 0.1 * isi * (50 + temp)  # Versión simplificada
+
+        return max(0, min(fwi, 100))
+
+    # Aplicar
+    df['fwi'] = df.apply(
+        lambda row: calcular_fwi_simple(
+          row['tmax'] if pd.notna(row['tmax']) else 20,
+          row['hrMedia'] if pd.notna(row['hrMedia']) else 50,
+          row['velmedia'] if pd.notna(row['velmedia']) else 10,
+          row['prec'] if pd.notna(row['prec']) else 0
+        ), axis=1
+    )
+
+    # 9 Persistencia de condiciones peligrosas
+    df['dias_sin_lluvia'] = (df['prec'] < 1).groupby(
+        (df['prec'] >= 1).cumsum()
+    ).cumsum()
+
+    df['dias_calor'] = (df['tmax'] > 30).groupby(
+        (df['tmax'] <= 30).cumsum()
+    ).cumsum()
+
+    df['dias_viento'] = (df['velmedia'] > 20).groupby(
+        (df['velmedia'] <= 20).cumsum()
+    ).cumsum()
+
+    # Triple amenaza
+    df['triple_amenaza'] = (
+        (df['dias_sin_lluvia'] >= 7) &
+        (df['dias_calor'] >= 3) &
+        (df['dias_viento'] >= 2)
+    ).astype(int)  
 
 # ------------------------------------------------------
 # 1. CONFIGURACIÓN DE LA PÁGINA
@@ -447,32 +545,34 @@ if pagina == "Predicción":
 
             if extremes_data_dict:
                 df_extremes_formatted = pd.DataFrame(extremes_data_dict)
-            
-                # Limpieza de columnas
-                cols_to_correct = ['tmed', 'prec', 'velmedia', 'hrMedia']
-                for col in cols_to_correct:
-                    if col in df_extremes_formatted.columns:
-                        df_extremes_formatted[col] = df_extremes_formatted[col].apply(limpiar_decimales)
+                df_extremes_formatted["municipio"] = municipio
                 
-                # Recalcular features (asegúrate de que AEMET devuelva suficientes días para el rolling)
-                df_extremes_formatted['lluvia_acum_30d'] = df_extremes_formatted['prec'].rolling(window=30, min_periods=1).sum()
-                df_extremes_formatted['temp_media_30d'] = df_extremes_formatted['tmed'].rolling(window=30, min_periods=1).mean()
-                df_extremes_formatted['viento_medio_7d'] = df_extremes_formatted['velmedia'].rolling(window=7, min_periods=1).mean()
+                df_earth = carga_datos_earth(municipio)
                 
-                df_extremes_formatted['fecha'] = pd.to_datetime(df_extremes_formatted['fecha'])
-                df_extremes_formatted['dia_del_ano'] = df_extremes_formatted['fecha'].dt.dayofyear
-                df_extremes_formatted['mes'] = df_extremes_formatted['fecha'].dt.month
-
-                # Define the desired order of columns
-                desired_column_order = [
-                    'mes', 'dia_del_ano',
-                    'tmed', 'prec', 'velmedia', 'hrMedia',
-                    'lluvia_acum_30d', 'temp_media_30d', 'viento_medio_7d'
-                ]
+                df_extremes_formatted["elevation"] = df_earth["elevation"].values[0]
+                df_extremes_formatted["slope"] = df_earth["slope"].values[0]
+                df_extremes_formatted["ndvi"] = df_earth["ndvi"].values[0]
+                
+                if 'fecha' in df_extremes_formatted.columns:
+                    df_extremes_formatted.set_index('fecha', inplace=True)
+                df_extremes_formatted.index = pd.to_datetime(df_extremes_formatted.index)
+                
+                new_features(df_extremes_formatted)
+                
+                  # Define the desired order of columns
+                desired_column_order = ['tmed', 'tmin', 'tmax', 'prec', 'dir', 'velmedia',
+                       'racha', 'sol', 'presMax', 'presMin', 'hrMedia', 'elevation', 'slope',
+                       'ndvi', 'regla_30_30_30', 'temp_x_viento',
+                       'sequedad', 'viento_seco', 'rango_termico', 'rango_presion', 'tmax_7d',
+                       'tmin_7d', 'tmed_7d', 'prec_7d', 'velmedia_7d', 'hrMedia_7d', 'sol_7d',
+                       'presMax_7d', 'dia_seco', 'lluvia_semana', 'lluvia_mes',
+                       'deficit_lluvia', 'temp_humedad', 'presion_baja', 'mes', 'dia_año',
+                       'es_verano', 'fwi', 'dias_sin_lluvia', 'dias_calor', 'dias_viento',
+                       'triple_amenaza']
                 
                 # Filter and reorder the DataFrame columns
                 df_extremes_formatted = df_extremes_formatted[desired_column_order]
-    
+                
                 # Realizar predicción real
                 valor_predicho = predecir(df_extremes_formatted.tail(1))
     
