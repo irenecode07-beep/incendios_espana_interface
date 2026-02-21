@@ -12,7 +12,7 @@ import numpy as np
 
 @st.cache_resource
 def cargar_recursos():
-    model = joblib.load('modelo_incendios_completo.pkl')
+    model = joblib.load('modelo_incendios_completo2.pkl')
     # Asegúrate de haber exportado estos archivos desde tu notebook de entrenamiento
     return model
 
