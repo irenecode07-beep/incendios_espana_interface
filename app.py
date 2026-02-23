@@ -67,7 +67,7 @@ def fetch_aemet_values(station_id, fecha_fin):
 def predecir(datos):
 
     try:
-        st.write("predecir")
+        
         expected_features = model['modelo'].feature_names_in_
 
         for col in expected_features:
