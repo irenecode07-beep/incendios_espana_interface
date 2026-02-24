@@ -380,7 +380,7 @@ if pagina == "Inicio":
     
         for i, row in df_mapa.iterrows():
             sup = row['superficie']
-            color = "darkred" if sup > 50 else "orange" if sup > 10 else "green"
+            color = "darkred" if sup > 30 else "orange" if sup > 10 else "green"
     
             # Popup
             html_popup = f"""
